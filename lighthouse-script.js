@@ -7,13 +7,22 @@ import { writeFile } from './file-utils.mjs';
 import { formatAsCSV, formatAsHTML } from './format-utils.mjs';
 
 const inputFile = 'urls.txt';
-const logFile = 'lighthouse-script.log';
+const logDir = 'logs';
+const resultsDir = 'results';
 
 async function main() {
   const urls = (await fs.readFile(inputFile, 'utf-8')).split('\n').filter(Boolean);
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const results = [];
-  
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const resultsSubDir = `${resultsDir}/${yearMonth}`;
+
+  await fs.mkdir(logDir, { recursive: true });
+  await fs.mkdir(resultsSubDir, { recursive: true });
+
+  const logFile = `${logDir}/lighthouse-script.log`;
+
   for (const url of urls) {
     console.log(`Running Lighthouse for ${url}`);
     await logToFile(logFile, `Running Lighthouse for ${url}`);
@@ -27,8 +36,8 @@ async function main() {
   }
 
   try {
-    await writeFile(`lighthouse-results-${ts}.csv`, formatAsCSV(results));
-    await writeFile(`lighthouse-results-${ts}.html`, formatAsHTML(results));
+    await writeFile(`${resultsSubDir}/lighthouse-results-${ts}.csv`, formatAsCSV(results));
+    await writeFile(`${resultsSubDir}/lighthouse-results-${ts}.html`, formatAsHTML(results));
     console.log('Results written to timestamped CSV and HTML files.');
     await logToFile(logFile, 'Results written to timestamped CSV and HTML files.');
   } catch (e) {
