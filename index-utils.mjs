@@ -87,6 +87,7 @@ export function generateIndexHTML(runs) {
         </style>
       </head>
       <body>
+      <a href="/"><img src='/img/logo.png'></a>
       <h1>Past Lighthouse Runs</h1>
       <button id="edit-urls">Edit URLs</button> <!-- Add this button -->
       <button id="rerun-tests">Rerun Tests</button> <!-- Add this button -->

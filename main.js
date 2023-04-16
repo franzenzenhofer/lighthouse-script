@@ -19,6 +19,7 @@ const wsPort = 3008;
 const reportDirectory = './results';
 
 const app = express();
+app.use('/img', express.static(path.join(__dirname, 'static', 'img')));
 app.use(express.json());
 
 
