@@ -106,54 +106,48 @@ export function generateIndexHTML(runs) {
           }
         });
 
-        // Add this script to check for updates in pastRuns.json
-        async function checkForUpdates() {
-          try {
-            const response = await fetch('/pastRuns.json');
-            if (response.ok) {
-              const pastRuns = await response.json();
-              if (JSON.stringify(pastRuns) !== JSON.stringify(${JSON.stringify(runs)})) {
-                location.reload();
-              }
-            }
-          } catch (error) {
-            console.error('Error checking for updates:', error);
-          }
-        }
 
-        setInterval(checkForUpdates, 10 * 1000); // Check for updates every 10 seconds
+        // Remove the setInterval and checkForUpdates function
 
-        const socket = new WebSocket('ws://localhost:3001');
-  
+        const socket = new WebSocket('ws://localhost:3000');
+
         socket.onopen = (event) => {
           console.log('WebSocket connection established:', event);
+          console.log('WebSocket readyState:', socket.readyState);
           socket.send('getStatus');
         };
 
-        console.log("socket should be open");
+        console.log("Attempting to open WebSocket connection");
         console.log(socket);
-              
+
+        let wasRunningTests = false;
+
         socket.onmessage = (event) => {
           console.log('WebSocket message received:', event.data);
           const { runningTests } = JSON.parse(event.data);
           const rerunTestsButton = document.getElementById('rerun-tests');
           rerunTestsButton.disabled = runningTests;
-      
+
           if (runningTests) {
             rerunTestsButton.textContent = 'Running tests...';
           } else {
             rerunTestsButton.textContent = 'Rerun Tests';
           }
+
+          if (wasRunningTests && !runningTests) {
+            location.reload();
+          }
+
+          wasRunningTests = runningTests;
         };
-      
+
         socket.onclose = (event) => {
           console.log('WebSocket connection closed:', event);
         };
-      
+
         socket.onerror = (error) => {
           console.error('WebSocket error:', error);
         };
-
       </script>
     </body>
   </html>`;

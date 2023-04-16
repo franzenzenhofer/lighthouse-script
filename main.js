@@ -1,28 +1,26 @@
-import { runLighthouseForUrls } from './lighthouse-script.js'; // Remove saveResults import
+import { runLighthouseForUrls } from './lighthouse-script.js';
 import { readPastRunsFile, writePastRunsFile, generateIndexHTML } from './index-utils.mjs';
-import { writeFile, readFile, revertFile, writeFileWithBackup } from './file-utils.mjs'; // Update the import
+import { writeFile, readFile, revertFile, writeFileWithBackup } from './file-utils.mjs';
 import fs from 'fs/promises';
 import express from 'express';
-import path, { resolve } from 'path'; // Add resolve import
+import path, { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import open from 'open';
 import url from 'url';
 
-import { createServer } from 'http'; // Add this import
-
 import { createWebSocketServer } from './websocket-utils.mjs';
 
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const pastRunsFile = './results/pastRuns.json';
 const indexFile = './results/index.html';
 const port = 3000;
+const wsPort = 3008;
 const reportDirectory = './results';
 
 const app = express();
-app.use(express.json()); // Add this line to support JSON body parsing
+app.use(express.json());
+
 
 // Serve the urls-editor.html file from the static folder
 app.get('/urls-editor', (req, res) => {
@@ -131,7 +129,7 @@ async function writeIndexHTML(pastRuns) {
 async function startLocalServer(reportDirectory) {
   app.use(express.static(reportDirectory));
 
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
   });
 
@@ -140,6 +138,8 @@ async function startLocalServer(reportDirectory) {
   } catch (error) {
     console.error('Error opening browser:', error);
   }
+
+  return server;
 }
 
 async function main() {
@@ -157,29 +157,16 @@ async function main() {
     console.log('Writing index HTML...');
     const updatedIndexHTML = await writeIndexHTML(pastRuns);
     console.log('Index HTML written.');
-
     console.log('Starting local server...');
-    await startLocalServer(reportDirectory);
+    const server = await startLocalServer(reportDirectory);
+
+    // Attach the handleUpgrade listener to the HTTP server instance
+    server.on('upgrade', handleUpgrade);
   } catch (error) {
     console.error('Unexpected error:', error);
   }
 }
 
-const { wss, setRunningTests } = createWebSocketServer();
-
-const wsPort = 3001;
-const httpServer = createServer();
-httpServer.listen(wsPort, () => {
-  console.log(`WebSocket server running at ws://localhost:${wsPort}`);
-});
-
-
-app.on('upgrade', (request, socket, head) => {
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    wss.emit('connection', ws, request);
-  });
-});
-
-
+const { wss, setRunningTests, handleUpgrade } = createWebSocketServer(wsPort);
 
 main();
