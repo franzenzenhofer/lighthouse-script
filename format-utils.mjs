@@ -198,7 +198,7 @@ export function formatAsHTML(results) {
         </style>
       </head>
       <body>
-      <a href="/"><img src='/img/logo.png' widht="150px" height="150px"></a>
+      <a href="/"><img src='/img/logo.png' widht="140px" height="140px"></a>
         <h2>Results</h2>
         ${table}
         <h2>Legend</h2>
