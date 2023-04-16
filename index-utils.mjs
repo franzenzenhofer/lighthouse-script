@@ -87,8 +87,74 @@ export function generateIndexHTML(runs) {
         </style>
       </head>
       <body>
-        <h1>Past Lighthouse Runs</h1>
-        <ul>${listItems}</ul>
-      </body>
-    </html>`;
+      <h1>Past Lighthouse Runs</h1>
+      <button id="edit-urls">Edit URLs</button> <!-- Add this button -->
+      <button id="rerun-tests">Rerun Tests</button> <!-- Add this button -->
+      <ul>${listItems}</ul>
+      <script>
+        // Add this script to handle button clicks
+        document.getElementById('edit-urls').addEventListener('click', () => {
+          location.href = '/urls-editor';
+        });
+
+        document.getElementById('rerun-tests').addEventListener('click', async () => {
+          const response = await fetch('/rerun-tests', { method: 'POST' });
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('Error rerunning tests');
+          }
+        });
+
+        // Add this script to check for updates in pastRuns.json
+        async function checkForUpdates() {
+          try {
+            const response = await fetch('/pastRuns.json');
+            if (response.ok) {
+              const pastRuns = await response.json();
+              if (JSON.stringify(pastRuns) !== JSON.stringify(${JSON.stringify(runs)})) {
+                location.reload();
+              }
+            }
+          } catch (error) {
+            console.error('Error checking for updates:', error);
+          }
+        }
+
+        setInterval(checkForUpdates, 10 * 1000); // Check for updates every 10 seconds
+
+        const socket = new WebSocket('ws://localhost:3001');
+  
+        socket.onopen = (event) => {
+          console.log('WebSocket connection established:', event);
+          socket.send('getStatus');
+        };
+
+        console.log("socket should be open");
+        console.log(socket);
+              
+        socket.onmessage = (event) => {
+          console.log('WebSocket message received:', event.data);
+          const { runningTests } = JSON.parse(event.data);
+          const rerunTestsButton = document.getElementById('rerun-tests');
+          rerunTestsButton.disabled = runningTests;
+      
+          if (runningTests) {
+            rerunTestsButton.textContent = 'Running tests...';
+          } else {
+            rerunTestsButton.textContent = 'Rerun Tests';
+          }
+        };
+      
+        socket.onclose = (event) => {
+          console.log('WebSocket connection closed:', event);
+        };
+      
+        socket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+
+      </script>
+    </body>
+  </html>`;
 }

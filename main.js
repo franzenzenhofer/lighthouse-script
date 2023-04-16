@@ -1,10 +1,20 @@
-import { runLighthouseForUrls, saveResults } from './lighthouse-script.js';
+import { runLighthouseForUrls } from './lighthouse-script.js'; // Remove saveResults import
 import { readPastRunsFile, writePastRunsFile, generateIndexHTML } from './index-utils.mjs';
+import { writeFile, readFile, revertFile, writeFileWithBackup } from './file-utils.mjs'; // Update the import
 import fs from 'fs/promises';
 import express from 'express';
-import path from 'path';
+import path, { resolve } from 'path'; // Add resolve import
+import { fileURLToPath } from 'url';
 import open from 'open';
 import url from 'url';
+
+import { createServer } from 'http'; // Add this import
+
+import { createWebSocketServer } from './websocket-utils.mjs';
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const pastRunsFile = './results/pastRuns.json';
 const indexFile = './results/index.html';
@@ -12,6 +22,64 @@ const port = 3000;
 const reportDirectory = './results';
 
 const app = express();
+app.use(express.json()); // Add this line to support JSON body parsing
+
+// Serve the urls-editor.html file from the static folder
+app.get('/urls-editor', (req, res) => {
+  res.sendFile(resolve(__dirname, 'static', 'urls-editor.html'));
+});
+
+app.post('/file-operation', async (req, res) => {
+  try {
+    const operation = req.body.operation;
+    if (operation === 'read') {
+      const content = await readFile('./urls.txt');
+      res.json({ content });
+    } else if (operation === 'write') {
+      const content = req.body.content;
+      await writeFileWithBackup('./urls.txt', content); // Use writeFileWithBackup instead of writeFile
+      res.json({ success: true });
+    } else if (operation === 'revert') {
+      await revertFile('./urls.txt');
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: 'Invalid operation' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+app.post('/rerun-tests', async (req, res) => {
+  try {
+    setRunningTests(true);
+
+    console.log('Rerunning Lighthouse tests...');
+    const { results } = await runLighthouseForUrls();
+    console.log('Lighthouse run complete.');
+
+    console.log('Updating past runs...');
+    const pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
+    console.log('Past runs updated.');
+
+    console.log('Writing index HTML...');
+    await writeIndexHTML(pastRuns);
+    console.log('Index HTML written.');
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error rerunning tests:', error);
+    res.sendStatus(500);
+  } finally {
+    setRunningTests(false);
+  }
+});
+
+
+
+
+
 
 function extractMainDomain(domainUrl) {
   const { hostname } = new url.URL(domainUrl);
@@ -77,13 +145,9 @@ async function startLocalServer(reportDirectory) {
 async function main() {
   try {
     console.log('Running Lighthouse...');
-    const results = await runLighthouseForUrls();
+    const { results, timestamp, reportDir } = await runLighthouseForUrls();
     console.log('Lighthouse run complete.');
     console.log('Lighthouse results:', JSON.stringify(results, null, 2));
-
-    console.log('Saving results...');
-    await saveResults(results);
-    console.log('Results saved.');
 
     console.log('Updating past runs...');
     const pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
@@ -100,5 +164,22 @@ async function main() {
     console.error('Unexpected error:', error);
   }
 }
+
+const { wss, setRunningTests } = createWebSocketServer();
+
+const wsPort = 3001;
+const httpServer = createServer();
+httpServer.listen(wsPort, () => {
+  console.log(`WebSocket server running at ws://localhost:${wsPort}`);
+});
+
+
+app.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
+
+
 
 main();

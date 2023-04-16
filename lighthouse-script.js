@@ -10,40 +10,40 @@ const inputFile = 'urls.txt';
 const logDir = 'logs';
 const resultsDir = 'results';
 
-async function processURLs(urls, logFile, ts, resultsSubDir) {
+async function processURLs(urls, ts, resultsSubDir) {
   const results = [];
 
   for (const url of urls) {
-    console.log(`Running Lighthouse for ${url}`);
-    await logToFile(logFile, `Running Lighthouse for ${url}`);
     const start = performance.now();
     const r = await runLighthouse(url, ts, resultsSubDir);
     results.push(r);
     const end = performance.now();
-    const d = (end - start) / 1000;
-    console.log(`Lighthouse finished for ${url} in ${d.toFixed(2)} seconds`);
-    await logToFile(logFile, `Lighthouse finished for ${url} in ${d.toFixed(2)} seconds`);
   }
   return results;
 }
 
-async function saveResults(results) {
-  console.log("in SAVE RESULTS");
-  console.log(results);
-  const ts = results[0].reportFilename.split('/')[2];
-  const resultsSubDir = results[0].reportFilename.split('/').slice(0, 3).join('/');
-
-  const logFile = `${logDir}/lighthouse-script.log`;
-
+async function createResultsSubDir(resultsSubDir) {
   try {
-    await writeFile(`${resultsSubDir}/lighthouse-results-${ts}.csv`, formatAsCSV(results));
-    await writeFile(`${resultsSubDir}/lighthouse-results-${ts}.html`, formatAsHTML(results));
-    console.log('Results written to timestamped CSV and HTML files.');
-    await logToFile(logFile, 'Results written to timestamped CSV and HTML files.');
+    await fs.access(resultsSubDir, fs.constants.F_OK);
+  } catch (error) {
+    await fs.mkdir(resultsSubDir, { recursive: true });
+  }
+}
+
+
+async function saveCSV(results, csvFilePath) {
+  try {
+    await writeFile(csvFilePath, formatAsCSV(results));
   } catch (e) {
-    console.error('Error writing results:', e.message);
-    console.log(results);
-    await logToFile(logFile, `Error writing results: ${e.message}`);
+    console.error(`Error writing CSV results: ${e.message}`);
+  }
+}
+
+async function saveHTML(results, htmlFilePath) {
+  try {
+    await writeFile(htmlFilePath, formatAsHTML(results));
+  } catch (e) {
+    console.error(`Error writing HTML results: ${e.message}`);
   }
 }
 
@@ -57,15 +57,25 @@ async function runLighthouseForUrls() {
   await fs.mkdir(logDir, { recursive: true });
   await fs.mkdir(resultsSubDir, { recursive: true });
 
-  const logFile = `${logDir}/lighthouse-script.log`;
   const runSubDir = `${resultsSubDir}/${ts}`;
   await fs.mkdir(runSubDir, { recursive: true });
 
-  const results = await processURLs(urls, logFile, ts, runSubDir);
-  await saveResults(results);
+  const results = await processURLs(urls, ts, runSubDir);
+  
+  // Save results internally
+  await createResultsSubDir(resultsSubDir);
+  const csvFilePath = `${resultsSubDir}/${ts}/lighthouse-results-${ts}.csv`;
+  const htmlFilePath = `${resultsSubDir}/${ts}/lighthouse-results-${ts}.html`;
+  await saveCSV(results, csvFilePath);
+  await saveHTML(results, htmlFilePath);
 
-  return results;
+  return {
+    results,
+    timestamp: ts,
+    reportDir: runSubDir,
+  };
 }
+
 
 function removeBase64Images(obj) {
   for (const key in obj) {
@@ -127,10 +137,4 @@ async function runLighthouse(url, ts, runSubDir) {
   };
 }
 
-async function logToFile(file, message) {
-  const ts = new Date().toISOString();
-  await fs.appendFile(file, `[${ts}] ${message}\n`);
-}
-
-export { runLighthouse, saveResults, runLighthouseForUrls };
-
+export { runLighthouse, runLighthouseForUrls };
