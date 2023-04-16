@@ -1,10 +1,10 @@
 import { runLighthouseForUrls, saveResults } from './lighthouse-script.js';
 import { readPastRunsFile, writePastRunsFile, generateIndexHTML } from './index-utils.mjs';
 import fs from 'fs/promises';
-import http from 'http';
-import open from 'open';
 import express from 'express';
 import path from 'path';
+import open from 'open';
+import url from 'url';
 
 const pastRunsFile = './results/pastRuns.json';
 const indexFile = './results/index.html';
@@ -12,6 +12,13 @@ const port = 3000;
 const reportDirectory = './results';
 
 const app = express();
+
+function extractMainDomain(domainUrl) {
+  const { hostname } = new url.URL(domainUrl);
+  const parts = hostname.split('.');
+  const mainDomain = parts.slice(-2).join('.');
+  return mainDomain;
+}
 
 async function updatePastRuns(results) {
   try {
@@ -21,8 +28,13 @@ async function updatePastRuns(results) {
 
     const timestamp = results[0].reportFilename.split('/')[2];
     const reportDir = results[0].reportFilename.split('/').slice(0, 3).join('/');
+    const testsCount = results.length;
 
-    pastRuns.unshift({ timestamp, reportDir });
+    const uniqueDomains = Array.from(
+      new Set(results.map(result => extractMainDomain(result.url)))
+    );
+
+    pastRuns.unshift({ timestamp, reportDir, testsCount, uniqueDomains });
 
     console.log('Writing updated past runs to file...');
     await writePastRunsFile(pastRunsFile, pastRuns);
@@ -36,10 +48,10 @@ async function updatePastRuns(results) {
   }
 }
 
+
 async function writeIndexHTML(pastRuns) {
   try {
     const updatedIndexHTML = generateIndexHTML(pastRuns);
-    //should be written in the results directory
     await fs.writeFile(indexFile, updatedIndexHTML);
     return updatedIndexHTML;
   } catch (error) {
