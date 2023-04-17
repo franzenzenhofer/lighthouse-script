@@ -4,6 +4,7 @@ logs/
 node_modules/
 
 # Files
+!static/*.html
 *.html
 
 # Executables
