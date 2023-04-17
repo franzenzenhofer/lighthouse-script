@@ -25,7 +25,7 @@ function convertTimestamp(timestamp) {
 
 export function generateIndexHTML(runs) {
   const listItems = runs
-    .filter(run => run)
+    .filter(run => run && run.timestamp) // Ensure run object has a timestamp property
     .map(run => {
       const timestamp = run.timestamp;
       const date = timestamp.slice(0, 7);

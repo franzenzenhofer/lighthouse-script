@@ -145,6 +145,37 @@ async function startLocalServer(reportDirectory) {
 
 async function main() {
   try {
+    // Create the results directory if it doesn't exist
+    await fs.mkdir(reportDirectory, { recursive: true });
+
+    // Check if index.html exists before generating an empty one
+    try {
+      await fs.access(indexFile, fs.constants.F_OK);
+      console.log('index.html exists.');
+    } catch (error) {
+      console.log('index.html does not exist, running Lighthouse for the first time.');
+
+      // Check if urls.txt exists before generating one
+      try {
+        await fs.access('./urls.txt', fs.constants.F_OK);
+      } catch (error) {
+        console.log('urls.txt does not exist, creating a new one with a default URL.');
+        await fs.writeFile('./urls.txt', 'https://www.fullstackoptimization.com/\n');
+      }
+
+      console.log('Running Lighthouse for URLs...');
+      const { results } = await runLighthouseForUrls();
+      console.log('Lighthouse run complete.');
+
+      console.log('Updating past runs...');
+      const pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
+      console.log('Past runs updated.');
+
+      console.log('Writing index HTML...');
+      await writeIndexHTML(pastRuns);
+      console.log('Index HTML written.');
+    }
+
     console.log('Starting local server...');
     const server = await startLocalServer(reportDirectory);
 
@@ -154,6 +185,9 @@ async function main() {
     console.error('Unexpected error:', error);
   }
 }
+
+
+
 
 
 const { wss, setRunningTests, handleUpgrade } = createWebSocketServer(wsPort);

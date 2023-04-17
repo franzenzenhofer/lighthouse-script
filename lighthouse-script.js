@@ -80,13 +80,8 @@ async function runLighthouseForUrls() {
   const runSubDir = `${resultsSubDir}/${ts}`;
   await fs.mkdir(runSubDir, { recursive: true });
 
-  // Check if index.html exists before generating an empty one
-  try {
-    await fs.access('index.html', fs.constants.F_OK);
-  } catch (error) {
-    // Generate initial index.html if it doesn't exist
-    await generateIndexHTML([]);
-  }
+ 
+
 
   const results = await processURLs(urls, ts, runSubDir);
   
