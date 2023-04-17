@@ -145,19 +145,6 @@ async function startLocalServer(reportDirectory) {
 
 async function main() {
   try {
-    console.log('Running Lighthouse...');
-    const { results, timestamp, reportDir } = await runLighthouseForUrls();
-    console.log('Lighthouse run complete.');
-    console.log('Lighthouse results:', JSON.stringify(results, null, 2));
-
-    console.log('Updating past runs...');
-    const pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
-    console.log('Past runs:', JSON.stringify(pastRuns, null, 2));
-    console.log('Past runs updated.');
-
-    console.log('Writing index HTML...');
-    const updatedIndexHTML = await writeIndexHTML(pastRuns);
-    console.log('Index HTML written.');
     console.log('Starting local server...');
     const server = await startLocalServer(reportDirectory);
 
@@ -167,6 +154,7 @@ async function main() {
     console.error('Unexpected error:', error);
   }
 }
+
 
 const { wss, setRunningTests, handleUpgrade } = createWebSocketServer(wsPort);
 

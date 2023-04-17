@@ -1,5 +1,20 @@
-
+# Directories
 results/
 logs/
-*.html
 node_modules/
+
+# Files
+*.html
+
+# Executables
+node_modules/.bin/chrome-debug
+node_modules/.bin/lighthouse
+
+# Ignore all files inside node_modules (redundant, but added for clarity)
+node_modules/**/*
+
+# Additional files and folders to ignore
+.DS_Store
+.env
+.package-lock.json
+.yarn.lock

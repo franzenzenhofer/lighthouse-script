@@ -10,14 +10,33 @@ const inputFile = 'urls.txt';
 const logDir = 'logs';
 const resultsDir = 'results';
 
+/*const getLighthouseVersion = async () => {
+  const lighthousePkg = await import('lighthouse/package.json', { assert: { type: 'json' } });
+  return lighthousePkg.default.version;
+};
+
+getLighthouseVersion().then(version => {
+  console.log(`Using Lighthouse version: ${version}`);
+});*/
+
+
+
 async function processURLs(urls, ts, resultsSubDir) {
   const results = [];
 
   for (const url of urls) {
     const start = performance.now();
+    console.log(`Starting Lighthouse test for ${url}`);
     const r = await runLighthouse(url, ts, resultsSubDir);
+    if (r.error) {
+      console.log(`Lighthouse test failed for ${url}: ${r.error.message}`);
+    } else {
+      console.log(`Lighthouse test successful for ${url}`);
+    }
     results.push(r);
     const end = performance.now();
+    const duration = (end - start) / 1000;
+    console.log(`Lighthouse test for ${url} took ${duration.toFixed(2)} seconds`);
   }
   return results;
 }
@@ -48,6 +67,7 @@ async function saveHTML(results, htmlFilePath) {
 }
 
 async function runLighthouseForUrls() {
+  
   const urls = (await fs.readFile(inputFile, 'utf-8')).split('\n').filter(Boolean);
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const now = new Date();
@@ -88,53 +108,59 @@ function removeBase64Images(obj) {
 }
 
 async function runLighthouse(url, ts, runSubDir) {
-  const chrome = await chromeLauncher.launch({ chromeFlags: ['--headless'] });
-  const opts = { output: ['json', 'html'], onlyCategories: ['performance'], port: chrome.port };
-  const results = await lighthouse(url, opts);
-  await chrome.kill();
-  const { audits, categories } = results.lhr;
+  try {
+    const chrome = await chromeLauncher.launch({ chromeFlags: ['--headless'] });
+    const opts = { output: ['json', 'html'], onlyCategories: ['performance'], port: chrome.port };
+    const results = await lighthouse(url, opts);
+    await chrome.kill();
 
-  const networkRequests = results.lhr.audits['network-requests'].details.items;
-  const numNetworkRequests = networkRequests.length;
-  const rootResponseProtocol = networkRequests.find(item => item.resourceType === 'Document')?.protocol || 'unknown';
+    const { audits, categories } = results.lhr;
 
-  const diagnostics = audits['diagnostics'].details.items[0];
-  const performanceScore = categories.performance.score;
-  const totalByteWeight = audits['total-byte-weight'].numericValue;
-  const mainThreadTime = audits['mainthread-work-breakdown'].numericValue;
-  const timeToInteractive = audits['interactive'].numericValue;
+    const networkRequests = results.lhr.audits['network-requests'].details.items;
+    const numNetworkRequests = networkRequests.length;
+    const rootResponseProtocol = networkRequests.find(item => item.resourceType === 'Document')?.protocol || 'unknown';
 
-  const hash = url.split('').reduce((acc, char) => {
-    return (acc * 31 + char.charCodeAt(0)) & 0x7fffffff;
-  }, 0);
+    const diagnostics = audits['diagnostics'].details.items[0];
+    const performanceScore = categories.performance.score;
+    const totalByteWeight = audits['total-byte-weight'].numericValue;
+    const mainThreadTime = audits['mainthread-work-breakdown'].numericValue;
+    const timeToInteractive = audits['interactive'].numericValue;
 
-  const reportFilename = `${runSubDir}/report-${hash}-${ts}.html`;
-  await fs.writeFile(reportFilename, results.report[1]);
+    const hash = url.split('').reduce((acc, char) => {
+      return (acc * 31 + char.charCodeAt(0)) & 0x7fffffff;
+    }, 0);
 
-  removeBase64Images(results.lhr);
+    const reportFilename = `${runSubDir}/report-${hash}-${ts}.html`;
+    await fs.writeFile(reportFilename, results.report[1]);
 
-  const jsonReportFilename = `${runSubDir}/report-${hash}-${ts}.json`;
-  await fs.writeFile(jsonReportFilename, JSON.stringify(results.lhr));
+    removeBase64Images(results.lhr);
 
-  return {
-    url,
-    reportFilename,
-    jsonReportFilename,
-    performance: categories.performance.score,
-    firstContentfulPaint: audits['first-contentful-paint'].numericValue,
-    speedIndex: audits['speed-index'].numericValue,
-    largestContentfulPaint: audits['largest-contentful-paint'].numericValue,
-    interactive: audits.interactive.numericValue,
-    totalBlockingTime: audits['total-blocking-time'].numericValue,
-    cumulativeLayoutShift: audits['cumulative-layout-shift'].numericValue,
-    numNetworkRequests,
-    rootResponseProtocol,
-    diagnostics,
-    performanceScore,
-    totalByteWeight,
-    mainThreadTime,
-    timeToInteractive
-  };
+    const jsonReportFilename = `${runSubDir}/report-${hash}-${ts}.json`;
+    await fs.writeFile(jsonReportFilename, JSON.stringify(results.lhr));
+
+    return {
+      url,
+      reportFilename,
+      jsonReportFilename,
+      performance: categories.performance.score,
+      firstContentfulPaint: audits['first-contentful-paint'].numericValue,
+      speedIndex: audits['speed-index'].numericValue,
+      largestContentfulPaint: audits['largest-contentful-paint'].numericValue,
+      interactive: audits.interactive.numericValue,
+      totalBlockingTime: audits['total-blocking-time'].numericValue,
+      cumulativeLayoutShift: audits['cumulative-layout-shift'].numericValue,
+      numNetworkRequests,
+      rootResponseProtocol,
+      diagnostics,
+      performanceScore,
+      totalByteWeight,
+      mainThreadTime,
+      timeToInteractive
+    };
+  } catch (error) {
+    return { error, url };
+  }
 }
+
 
 export { runLighthouse, runLighthouseForUrls };
