@@ -1,0 +1,96 @@
+<!DOCTYPE html> 
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>URLs Editor</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 1rem;
+        line-height: 1.5;
+      }
+
+      textarea {
+        width: 100%;
+        height: 300px;
+        resize: none;
+        margin-bottom: 1rem;
+      }
+
+      button {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+        margin-right: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/"><img src='/img/logo.png' widht="140px" height="140px"></a>
+    <h1>Edit URLs</h1>
+    <textarea id="urls-editor"></textarea>
+    <button id="save-btn">Save</button>
+    <button id="revert-btn">Revert</button>
+    <p id="message"></p>
+    <a href="/"><button id="back-btn">Back to Overview</button></a>
+
+    <script>
+      const editor = document.getElementById('urls-editor');
+      const saveBtn = document.getElementById('save-btn');
+      const revertBtn = document.getElementById('revert-btn');
+      const message = document.getElementById('message');
+
+      async function loadContent() {
+        const response = await fetch('/file-operation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operation: 'read' }),
+        });
+        const data = await response.json();
+        editor.value = data.content;
+      }
+
+      async function saveContent() {
+        const response = await fetch('/file-operation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operation: 'write', content: editor.value }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          showMessage('Changes saved successfully');
+        } else {
+          showMessage('Error saving changes');
+        }
+      }
+
+      async function revertContent() {
+        const response = await fetch('/file-operation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ operation: 'revert' }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          showMessage('Changes reverted successfully');
+          await loadContent();
+        } else {
+          showMessage('Error reverting changes');
+        }
+      }
+
+      function showMessage(msg) {
+        message.textContent = msg;
+        setTimeout(() => {
+          message.textContent = '';
+        }, 3000);
+      }
+
+      loadContent();
+      saveBtn.addEventListener('click', saveContent);
+      revertBtn.addEventListener('click', revertContent);
+    </script>
+  </body>
+</html>
