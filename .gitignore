@@ -15,7 +15,5 @@ node_modules/**/*
 .env
 .package-lock.json
 .yarn.lock
-www.orf.at_2023-04-13_19-47-50.report.html
-index.html
 urls.txt
 urls.txt.bak

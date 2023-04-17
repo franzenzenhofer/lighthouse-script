@@ -1,0 +1,106 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Past Lighthouse Runs</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+            line-height: 1.5;
+          }
+
+          h1 {
+            font-size: 2rem;
+            color: #333;
+          }
+
+          ul {
+            list-style-type: none;
+            padding: 0;
+          }
+
+          li {
+            margin-bottom: 0.5rem;
+          }
+
+          a {
+            color: #2a7ae2;
+            text-decoration: none;
+          }
+
+          a:hover {
+            text-decoration: underline;
+          }
+        </style>
+      </head>
+      <body>
+      <a href="/"><img src='/img/logo.png'></a>
+      <h1>Past Lighthouse Runs</h1>
+      <button id="edit-urls">Edit URLs</button> <!-- Add this button -->
+      <button id="rerun-tests">Rerun Tests</button> <!-- Add this button -->
+      <ul></ul>
+      <script>
+        // Add this script to handle button clicks
+        document.getElementById('edit-urls').addEventListener('click', () => {
+          location.href = '/urls-editor';
+        });
+
+        document.getElementById('rerun-tests').addEventListener('click', async () => {
+          const response = await fetch('/rerun-tests', { method: 'POST' });
+          if (response.ok) {
+            location.reload();
+          } else {
+            alert('Error rerunning tests');
+          }
+        });
+
+
+        // Remove the setInterval and checkForUpdates function
+
+        const socket = new WebSocket('ws://localhost:3000');
+
+        socket.onopen = (event) => {
+          console.log('WebSocket connection established:', event);
+          console.log('WebSocket readyState:', socket.readyState);
+          socket.send('getStatus');
+        };
+
+        console.log("Attempting to open WebSocket connection");
+        console.log(socket);
+
+        let wasRunningTests = false;
+
+        socket.onmessage = (event) => {
+          console.log('WebSocket message received:', event.data);
+          const { runningTests } = JSON.parse(event.data);
+          const rerunTestsButton = document.getElementById('rerun-tests');
+          rerunTestsButton.disabled = runningTests;
+
+          if (runningTests) {
+            rerunTestsButton.textContent = 'Running tests...';
+          } else {
+            rerunTestsButton.textContent = 'Rerun Tests';
+          }
+
+          if (wasRunningTests && !runningTests) {
+            location.reload();
+          }
+
+          wasRunningTests = runningTests;
+        };
+
+        socket.onclose = (event) => {
+          console.log('WebSocket connection closed:', event);
+        };
+
+        socket.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+      </script>
+    </body>
+  </html>
