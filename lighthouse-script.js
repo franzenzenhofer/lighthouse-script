@@ -80,6 +80,14 @@ async function runLighthouseForUrls() {
   const runSubDir = `${resultsSubDir}/${ts}`;
   await fs.mkdir(runSubDir, { recursive: true });
 
+  // Check if index.html exists before generating an empty one
+  try {
+    await fs.access('index.html', fs.constants.F_OK);
+  } catch (error) {
+    // Generate initial index.html if it doesn't exist
+    await generateIndexHTML([]);
+  }
+
   const results = await processURLs(urls, ts, runSubDir);
   
   // Save results internally
@@ -89,12 +97,16 @@ async function runLighthouseForUrls() {
   await saveCSV(results, csvFilePath);
   await saveHTML(results, htmlFilePath);
 
+  // Update index.html with the new results
+  await generateIndexHTML(results);
+
   return {
     results,
     timestamp: ts,
     reportDir: runSubDir,
   };
 }
+
 
 
 function removeBase64Images(obj) {

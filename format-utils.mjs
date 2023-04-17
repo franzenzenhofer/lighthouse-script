@@ -49,10 +49,11 @@ function formatCell(value, goal, max) {
 function formatLegend() {
   const legendRows = Object.entries(abbreviations).map(([abbr, explanation]) => {
     const { goal, max } = goalValues[abbr];
+    const unit = abbr === 'CLS' ? '' : 'ms'; // Add unit for all metrics except CLS
     return `
       <tr>
         <td>${abbr}</td>
-        <td>${explanation}</td>
+        <td>${explanation} (${unit})</td> <!-- Add unit here -->
         <td>${goal}</td>
         <td>${max}</td>
       </tr>`;
@@ -69,6 +70,7 @@ function formatLegend() {
       ${legendRows}
     </table>`;
 }
+
 
 
 function getBaseURL(url) {
