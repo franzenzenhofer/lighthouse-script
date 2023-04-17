@@ -19,17 +19,15 @@ Usage:
 
 1.  Create a text file named urls.txt in the project root directory, listing the URLs you want to test, one per line.
 
-Example: <https://www.example.com/> <https://www.example.org/> <https://www.example.net/>
+Example: https://www.fullstackoptimization.com/
 
-1.  Run the script: npm main.js
+2.  Run the script: node main.js
 
-2.  The script will run Lighthouse tests for each URL and save the results in timestamped CSV and HTML files in the results directory. It will also generate an index.html file listing the results of previous runs.
+3.  The script will run Lighthouse tests for each URL and save the results in timestamped CSV and HTML files in the results directory. It will also generate an index.html file listing the results of previous runs.
 
 Note: The script may take some time to complete, depending on the number of URLs and the performance of your computer.
 
-Additional Options:
-
--   Serve the Results Locally After running the script, you can start a local server to view the results in your browser. To do so, run: npm run serve Then visit [http://localhost:3000](http://localhost:3000/) in your web browser.
+-  Then visit [http://localhost:3000](http://localhost:3000/) in your web browser.
 
 -   Delete Previous Results To delete all previous results and start with a clean slate, run: npm run cleanRun.js
 
