@@ -39,10 +39,15 @@ function getColor(value, goal, max) {
   return 'red';
 }
 
-// Format a table cell with color based on the value
+// Helper function to format a number with a variable number of decimal places
+function formatNumber(value) {
+  return Number.isInteger(value) ? value : value.toFixed(2);
+}
+
+// Update the formatCell function to use the formatNumber helper function
 function formatCell(value, goal, max) {
   const color = getColor(value, goal, max);
-  return `<td style="background-color: ${color}">${value}</td>`;
+  return `<td style="background-color: ${color}">${formatNumber(value)}</td>`;
 }
 
 // Format the legend table
@@ -93,60 +98,76 @@ function formatRow(result) {
     jsonReportFilename,
     numNetworkRequests,
     rootResponseProtocol,
-    diagnostics, // Add this line
-    performanceScore, // Add this line
-    totalByteWeight, // Add this line
-    mainThreadTime, // Add this line
-    timeToInteractive // Add this line
+    diagnostics,
+    totalByteWeight,
+    mainThreadTime,
+    timeToInteractive,
+    serverResponseTime
   } = result;
 
   const psiLink = `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(url)}`;
-  
-  const reportLink = `<a href="/${reportFilename.replace('results/', '')}" >HTML Report</a>`; // Update this line
-  const jsonReportLink = `<a href="/${jsonReportFilename.replace('results/', '')}" >JSON Report</a>`; // Update this line
 
+  const reportLink = `<a href="/${reportFilename.replace('results/', '')}" >HTML Report</a>`;
+  const jsonReportLink = `<a href="/${jsonReportFilename.replace('results/', '')}" >JSON Report</a>`;
 
-  
+  // Calculate the performance score and assign a color
+  const performanceScoreValue = performance * 100;
+  let performanceScoreColor;
+  if (performanceScoreValue >= 90) {
+    performanceScoreColor = "green";
+  } else if (performanceScoreValue >= 80) {
+    performanceScoreColor = "orange";
+  } else {
+    performanceScoreColor = "red";
+  }
+
   return `
     <tr>
       <td><a href="${url}" target="_blank">${url}</a></td>
       <td><a href="${psiLink}" target="_blank">PSI</a></td>
-      <td>${performanceScore}</td> <!-- Update this line -->
+      <td style="background-color: ${performanceScoreColor}; text-align: center;">
+        <span style="display: inline-block; padding: 5px; border-radius: 50%;">${formatNumber(performanceScoreValue)}</span>
+      </td>
+      <td>${formatNumber(serverResponseTime)}</td>
       ${formatCell(firstContentfulPaint, goalValues.FCP.goal, goalValues.FCP.max)}
       ${formatCell(speedIndex, goalValues.SI.goal, goalValues.SI.max)}
       ${formatCell(largestContentfulPaint, goalValues.LCP.goal, goalValues.LCP.max)}
       ${formatCell(totalBlockingTime, goalValues.TBT.goal, goalValues.TBT.max)}
       ${formatCell(cumulativeLayoutShift, goalValues.CLS.goal, goalValues.CLS.max)}
-      <td>${totalByteWeight}</td> <!-- Add this line -->
-      <td>${mainThreadTime}</td> <!-- Add this line -->
-      <td>${timeToInteractive}</td> <!-- Add this line -->
+      <td>${formatNumber(totalByteWeight)}</td>
+      <td>${formatNumber(mainThreadTime)}</td>
+      <td>${formatNumber(timeToInteractive)}</td>
       <td>${reportLink}</td>
       <td>${jsonReportLink}</td>
       <td>${numNetworkRequests}</td>
       <td>${rootResponseProtocol}</td>
     </tr>`;
 }
-// Format the header row for the HTML table
+
+
+
 function formatHeader() {
   return `
     <tr>
       <th>URL</th>
-      <th>PSI</th>
-      <th>Performance Score</th>
-      <th>FCP</th>
-      <th>SI</th>
-      <th>LCP</th>
-      <th>TBT</th>
-      <th>CLS</th>
-      <th>Total Byte Weight</th>
-      <th>Main Thread Time</th>
-      <th>Time to Interactive</th>
-      <th>HTML Report</th>
-      <th>JSON Report</th>
-      <th>Network Requests</th>
-      <th>Root Protocol</th>
+      <th title="PageSpeed Insights">PSI</th>
+      <th title="Performance Score">Performance Score</th>
+      <th title="Time to First Byte">TTFB</th>
+      <th title="First Contentful Paint">FCP</th>
+      <th title="Speed Index">SI</th>
+      <th title="Largest Contentful Paint">LCP</th>
+      <th title="Total Blocking Time">TBT</th>
+      <th title="Cumulative Layout Shift">CLS</th>
+      <th title="Total Byte Weight">Total Byte Weight</th>
+      <th title="Main Thread Time">Main Thread Time</th>
+      <th title="Time to Interactive">Time to Interactive</th>
+      <th title="HTML Report">HTML Report</th>
+      <th title="JSON Report">JSON Report</th>
+      <th title="Network Requests">Network Requests</th>
+      <th title="Root Protocol">Root Protocol</th>
     </tr>`;
 }
+
 
 // Format the table rows for the results
 function formatRows(results) {

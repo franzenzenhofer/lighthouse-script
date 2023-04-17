@@ -132,6 +132,8 @@ async function runLighthouse(url, ts, runSubDir) {
     const totalByteWeight = audits['total-byte-weight'].numericValue;
     const mainThreadTime = audits['mainthread-work-breakdown'].numericValue;
     const timeToInteractive = audits['interactive'].numericValue;
+    const serverResponseTime = audits['server-response-time'].numericValue;
+
 
     const hash = url.split('').reduce((acc, char) => {
       return (acc * 31 + char.charCodeAt(0)) & 0x7fffffff;
@@ -162,7 +164,8 @@ async function runLighthouse(url, ts, runSubDir) {
       performanceScore,
       totalByteWeight,
       mainThreadTime,
-      timeToInteractive
+      timeToInteractive,
+      serverResponseTime
     };
   } catch (error) {
     return { error, url };
