@@ -52,6 +52,31 @@ function formatCell(value, goal, max) {
   return `<td style="background-color: ${color}">${formatNumber(value)}</td>`;
 }
 
+function formatTopIssues(topIssues) {
+  console.log('Formatting top issues:', topIssues); // Add this line
+  if (!topIssues || topIssues.length === 0) return '';
+
+  const rows = topIssues.map(({ key, count, severity }) => `
+    <tr>
+      <td>${key}</td>
+      <td>${count}</td>
+      <td>${severity.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <h2>Top Issues</h2>
+    <table>
+      <tr>
+        <th>Issue</th>
+        <th>Count</th>
+        <th>Average Severity</th>
+      </tr>
+      ${rows}
+    </table>`;
+}
+
+
 // Format the legend table
 function formatLegend() {
   const legendRows = Object.entries(abbreviations).map(([abbr, explanation]) => {
@@ -88,24 +113,25 @@ function getBaseURL(url) {
 
 
 function formatRow(result) {
-  const {
-    url,
-    performance,
-    firstContentfulPaint,
-    speedIndex,
-    largestContentfulPaint,
-    totalBlockingTime,
-    cumulativeLayoutShift,
-    reportFilename,
-    jsonReportFilename,
-    numNetworkRequests,
-    rootResponseProtocol,
-    diagnostics,
-    totalByteWeight,
-    mainThreadTime,
-    timeToInteractive,
-    serverResponseTime
-  } = result;
+  try {
+    const {
+      url = '',
+      performance = 0,
+      firstContentfulPaint = 0,
+      speedIndex = 0,
+      largestContentfulPaint = 0,
+      totalBlockingTime = 0,
+      cumulativeLayoutShift = 0,
+      reportFilename = '',
+      jsonReportFilename = '',
+      numNetworkRequests = 0,
+      rootResponseProtocol = '',
+      serverResponseTime = 0, // Add this line
+      totalByteWeight = 0, // Add this line
+      mainThreadTime = 0, // Add this line
+      timeToInteractive = 0, // Add this line
+    } = result;
+
 
   const psiLink = `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(url)}`;
 
@@ -144,6 +170,10 @@ function formatRow(result) {
       <td>${numNetworkRequests}</td>
       <td>${rootResponseProtocol}</td>
     </tr>`;
+  } catch (error) {
+    console.error(`Error formatting row for result: ${JSON.stringify(result)}, error: ${error.message}`);
+    return `<tr><td colspan="13">Error formatting row for result: ${JSON.stringify(result)}, error: ${error.message}</td></tr>`;
+  }
 }
 
 
@@ -183,51 +213,73 @@ function formatTable(results) {
   return `<table>${header}${rows}</table>`;
 }
 
-export function formatAsHTML(results) {
-  const table = formatTable(results);
-  const legend = formatLegend();
 
-  return `
+export function formatAsHTML(results, topIssues) {
+  try {
+    const table = formatTable(results);
+    const legend = formatLegend();
+    const topIssuesTable = formatTopIssues(topIssues);
+
+    return `
     <!DOCTYPE html>
     <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Lighthouse Results</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-          }
-          table {
-            border-collapse: collapse;
-            width: 100%;
-          }
-          th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-          }
-          th {
-            background-color: #f2f2f2;
-          }
-          tr:nth-child(even) {
-            background-color: #f2f2f2;
-          }
-          a {
-            text-decoration: none;
-            color: #1a0dab;
-          }
-          a:hover {
-            text-decoration: underline;
-          }
-        </style>
-      </head>
-      <body>
-      <a href="/"><img src='/img/logo.png' widht="140px" height="140px"></a>
-        <h2>Results</h2>
-        ${table}
-        <h2>Legend</h2>
-        ${legend}
-      </body>
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lighthouse Results</title>
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    a {
+      text-decoration: none;
+      color: #1a0dab;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+    </head>
+    <body>
+    <a href="/"><img src='/img/logo.png' widht="140px" height="140px"></a>
+      <h2>Results</h2>
+      ${table}
+      <h2>Legend</h2>
+      ${legend}
+      ${topIssuesTable}
+    </body>
     </html>`;
-}
+  } catch (error) {
+    console.error(`Error formatting HTML: ${error.message}`);
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Lighthouse Results</title>
+    </head>
+    <body>
+    <h2>Error formatting Lighthouse results</h2>
+    <p>Error message: ${error.message}</p>
+    <pre>${error.stack}</pre>
+    </body>
+    </html>`;
+  }
+
+} 

@@ -62,9 +62,14 @@ app.post('/rerun-tests', async (req, res) => {
     const pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
     console.log('Past runs updated.');
 
-    console.log('Writing index HTML...');
-    await writeIndexHTML(pastRuns);
-    console.log('Index HTML written.');
+    if (pastRuns && pastRuns.length > 0) {
+      console.log('Writing index HTML...');
+      await writeIndexHTML(pastRuns);
+      console.log('Index HTML written.');
+    } else {
+      console.warn('No past runs available. Skipping index HTML update.');
+    }
+    
 
     res.sendStatus(200);
   } catch (error) {
@@ -93,15 +98,24 @@ async function updatePastRuns(results) {
     const pastRuns = await readPastRunsFile(pastRunsFile);
     console.log('Past runs file read successfully.');
 
-    const timestamp = results[0].reportFilename.split('/')[2];
-    const reportDir = results[0].reportFilename.split('/').slice(0, 3).join('/');
+    if (!results || results.length === 0) {
+      console.warn('No results available. Skipping past runs update.');
+      return pastRuns;
+    }
+
+    const firstResult = results[0];
+
+    const timestamp = firstResult?.reportFilename?.split('/')[2] ?? '';
+    const reportDir = firstResult?.reportFilename?.split('/').slice(0, 3).join('/') ?? '';
     const testsCount = results.length;
 
     const uniqueDomains = Array.from(
-      new Set(results.map(result => extractMainDomain(result.url)))
-    );
+      new Set(results.map(result => result.error ? null : extractMainDomain(result.url)))
+    ).filter(domain => domain !== null);
 
-    pastRuns.unshift({ timestamp, reportDir, testsCount, uniqueDomains });
+    const errorCount = results.filter(result => result.error).length;
+
+    pastRuns.unshift({ timestamp, reportDir, testsCount, uniqueDomains, errorCount });
 
     console.log('Writing updated past runs to file...');
     await writePastRunsFile(pastRunsFile, pastRuns);
@@ -114,6 +128,8 @@ async function updatePastRuns(results) {
     return [];
   }
 }
+
+
 
 
 async function writeIndexHTML(pastRuns) {

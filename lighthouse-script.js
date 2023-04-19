@@ -19,6 +19,38 @@ getLighthouseVersion().then(version => {
   console.log(`Using Lighthouse version: ${version}`);
 });*/
 
+function extractIssues(results) {
+  const issues = {};
+
+  results.forEach(result => {
+    if (!result.error) {
+      Object.entries(result.diagnostics).forEach(([key, value]) => {
+        if (!issues[key]) {
+          issues[key] = {
+            count: 1,
+            severity: value,
+          };
+        } else {
+          issues[key].count += 1;
+          issues[key].severity += value;
+        }
+      });
+    }
+  });
+
+  const sortedIssues = Object.entries(issues)
+    .map(([key, value]) => ({
+      key,
+      count: value.count,
+      severity: value.severity / value.count,
+    }))
+    .sort((a, b) => b.severity - a.severity);
+
+  console.log('Extracted issues:', sortedIssues); // Add this line
+
+  return sortedIssues.slice(0, 10);
+}
+
 
 
 async function processURLs(urls, ts, resultsSubDir) {
@@ -27,19 +59,22 @@ async function processURLs(urls, ts, resultsSubDir) {
   for (const url of urls) {
     const start = performance.now();
     console.log(`Starting Lighthouse test for ${url}`);
-    const r = await runLighthouse(url, ts, resultsSubDir);
-    if (r.error) {
-      console.log(`Lighthouse test failed for ${url}: ${r.error.message}`);
-    } else {
+    try {
+      const r = await runLighthouse(url, ts, resultsSubDir);
       console.log(`Lighthouse test successful for ${url}`);
+      results.push(r);
+    } catch (error) {
+      console.log(`Lighthouse test failed for ${url}: ${error.message}`);
+      results.push({ error, url });
+    } finally {
+      const end = performance.now();
+      const duration = (end - start) / 1000;
+      console.log(`Lighthouse test for ${url} took ${duration.toFixed(2)} seconds`);
     }
-    results.push(r);
-    const end = performance.now();
-    const duration = (end - start) / 1000;
-    console.log(`Lighthouse test for ${url} took ${duration.toFixed(2)} seconds`);
   }
   return results;
 }
+
 
 async function createResultsSubDir(resultsSubDir) {
   try {
@@ -58,13 +93,23 @@ async function saveCSV(results, csvFilePath) {
   }
 }
 
-async function saveHTML(results, htmlFilePath) {
+async function saveHTML(results, htmlFilePath, topIssues) {
   try {
-    await writeFile(htmlFilePath, formatAsHTML(results));
+    const htmlContent = formatAsHTML(results, topIssues);
+    await writeFile(htmlFilePath, htmlContent);
   } catch (e) {
     console.error(`Error writing HTML results: ${e.message}`);
+    console.error(`Error stack trace: ${e.stack}`);
+    console.log(`HTML content:\n${formatAsHTML(results,topIssues)}`);
+    
+    try {
+      await writeFile(`${htmlFilePath}_failed-run.html`, formatAsHTML(results,topIssues));
+    } catch (e) {
+      console.error(`Error saving failed HTML results: ${e.message}`);
+    }
   }
 }
+
 
 async function runLighthouseForUrls() {
   
@@ -84,15 +129,19 @@ async function runLighthouseForUrls() {
 
 
   const results = await processURLs(urls, ts, runSubDir);
+  const topIssues = extractIssues(results);
   
   // Save results internally
   await createResultsSubDir(resultsSubDir);
   const csvFilePath = `${resultsSubDir}/${ts}/lighthouse-results-${ts}.csv`;
   const htmlFilePath = `${resultsSubDir}/${ts}/lighthouse-results-${ts}.html`;
   await saveCSV(results, csvFilePath);
-  await saveHTML(results, htmlFilePath);
+  console.log('Top issues:', topIssues); // Add this line
+  await saveHTML(results, htmlFilePath, topIssues);
 
   // Update index.html with the new results
+  //await generateIndexHTML(results);
+
   await generateIndexHTML(results);
 
   return {

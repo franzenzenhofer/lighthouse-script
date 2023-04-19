@@ -34,10 +34,11 @@ export function generateIndexHTML(runs) {
       const readableDate = new Date(convertTimestamp(timestamp)).toLocaleString();
       const testsCount = run.testsCount ? `Tests: ${run.testsCount}` : '';
       const uniqueDomains = run.uniqueDomains ? `Domains: ${run.uniqueDomains.join(', ')}` : '';
+      const errorIndicator = run.errorCount ? ` (Error(s): ${run.errorCount})` : '';
 
       return `
         <li>
-          <a href="./${date}/${timestamp}/${fileName}">${readableDate}</a>
+          <a href="./${date}/${timestamp}/${fileName}">${readableDate}${errorIndicator}</a>
           <br>
           ${testsCount}
           <br>
@@ -90,7 +91,7 @@ export function generateIndexHTML(runs) {
       <body>
       <a href="/"><img src='/img/logo.png'></a>
       <h1>Franz Enzenhofers Lighthouse Testing Tool</h1>
-      <h2>Past Test Runss</h1>
+      <h2>Past Test Runs</h1>
       <button id="edit-urls">Edit URLs</button> <!-- Add this button -->
       <button id="rerun-tests">Rerun Tests</button> <!-- Add this button -->
       <ul>${listItems}</ul>
