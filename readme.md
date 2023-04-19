@@ -1,34 +1,45 @@
-Lighthouse Script
 
-This Node.js script runs Google Lighthouse tests on a list of URLs provided in a text file and outputs the results to timestamped CSV and HTML files. It highlights suboptimal values that lead to orange or red PageSpeed Insights ratings.
+# Franz Enzenhofers Lighthouse Script
 
-Prerequisites:
+This is a Lighthouse script that automates performance tests for multiple webpages. It uses the Lighthouse library, Chrome Launcher, and Express for serving the results. The project allows users to read and write URLs, run Lighthouse tests, and view the results in a browser.
 
--   Node.js v12.20.0 or higher (Recommended: v14.x or higher)
--   Google Chrome installed
+## Prerequisites
 
-Installation:
+1. Node.js (version 14 or newer)
+2. Google Chrome browser installed
 
-1.  Clone the repository: git clone <https://github.com/franzenzenhofer/lighthouse-script.git>
+## Installation
 
-2.  Change the directory: cd lighthouse-script
+1. Clone the GitHub repository:
 
-3.  Install the dependencies: npm install
+git clone https://github.com/franzenzenhofer/lighthouse-script.git
 
-Usage:
+2. Change to the project directory:
 
-1.  Create a text file named urls.txt in the project root directory, listing the URLs you want to test, one per line.
+cd lighthouse-script
 
-Example: https://www.fullstackoptimization.com/
+3. Install the required dependencies:
 
-2.  Run the script: node main.js
+npm install
 
-3.  The script will run Lighthouse tests for each URL and save the results in timestamped CSV and HTML files in the results directory. It will also generate an index.html file listing the results of previous runs.
+## How to Run
 
-Note: The script may take some time to complete, depending on the number of URLs and the performance of your computer.
+1. Start the script by running the following command:
 
--  Then visit [http://localhost:3000](http://localhost:3000/) in your web browser.
+node main.js
 
--   Delete Previous Results To delete all previous results and start with a clean slate, run: npm run cleanRun.js
+2. The script will launch a local server at `http://localhost:3000`. Open this address in your browser to view the Lighthouse test results.
+
+3. To add or edit URLs for testing, go to `http://localhost:3000/urls-editor`. Edit the URLs and save your changes.
+
+4. To rerun the tests for the updated URLs, click the "Rerun Tests" button on the main page.
+
+- Delete Previous Results To delete all previous results and start with a clean slate, run: npm run cleanRun.js
+
+## Contributing
+
+If you have any suggestions or improvements, feel free to create a fork and submit a pull request on the GitHub repository.
+
+## License
 
 License: This project is licensed under the MIT License - see the LICENSE.md file for details.
