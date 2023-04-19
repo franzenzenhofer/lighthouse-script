@@ -8,6 +8,8 @@ import { fileURLToPath } from 'url';
 import open from 'open';
 import url from 'url';
 
+import crawl from './crawler.js';
+
 import { createWebSocketServer } from './websocket-utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +29,18 @@ app.use(express.json());
 app.get('/urls-editor', (req, res) => {
   res.sendFile(resolve(__dirname, 'static', 'urls-editor.html'));
 });
+
+app.post('/crawl', async (req, res) => {
+  try {
+    const crawlUrl = req.body.url;
+    const urls = await crawl(crawlUrl);
+    console.log(`Crawled URLs for ${crawlUrl}:`, urls); // Add this line for debugging
+    res.json({ urls });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 app.post('/file-operation', async (req, res) => {
   try {

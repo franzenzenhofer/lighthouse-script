@@ -35,6 +35,11 @@
     <button id="revert-btn">Revert</button>
     <p id="message"></p>
     <a href="/"><button id="back-btn">Back to Overview</button></a>
+    <!-- Add this input field and button inside the body tag -->
+<label for="crawl-url">Crawl URL:</label>
+<input type="text" id="crawl-url" />
+<button id="crawl-btn">Crawl</button>
+
 
     <script>
       const editor = document.getElementById('urls-editor');
@@ -89,6 +94,34 @@
       }
 
       loadContent();
+
+      const crawlUrlInput = document.getElementById('crawl-url');
+  const crawlBtn = document.getElementById('crawl-btn');
+
+  async function crawlUrls() {
+    const crawlUrl = crawlUrlInput.value;
+    if (!crawlUrl) {
+      showMessage('Please enter a URL to crawl');
+      return;
+    }
+
+    try {
+      const response = await fetch('/crawl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: crawlUrl }),
+      });
+      const data = await response.json();
+      console.log('Received URLs:', data.urls); // Add this line for debugging
+      const newUrls = data.urls.join('\n');
+      editor.value += '\n' + newUrls;
+      showMessage('URLs crawled successfully');
+    } catch (error) {
+      showMessage('Error crawling URLs');
+    }
+  }
+  crawlBtn.addEventListener('click', crawlUrls);
+
       saveBtn.addEventListener('click', saveContent);
       revertBtn.addEventListener('click', revertContent);
     </script>
