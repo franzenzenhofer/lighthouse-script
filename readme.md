@@ -12,21 +12,21 @@ This is a Lighthouse script that automates performance tests for multiple webpag
 
 1. Clone the GitHub repository:
 
-git clone https://github.com/franzenzenhofer/lighthouse-script.git
+`git clone https://github.com/franzenzenhofer/lighthouse-script.git`
 
 2. Change to the project directory:
 
-cd lighthouse-script
+`cd lighthouse-script`
 
 3. Install the required dependencies:
 
-npm install
+`npm install`
 
 ## How to Run
 
 1. Start the script by running the following command:
 
-node main.js
+`node main.js`
 
 2. The script will launch a local server at `http://localhost:3000`. Open this address in your browser to view the Lighthouse test results.
 
@@ -34,7 +34,7 @@ node main.js
 
 4. To rerun the tests for the updated URLs, click the "Rerun Tests" button on the main page.
 
-- Delete Previous Results To delete all previous results and start with a clean slate, run: npm run cleanRun.js
+- Delete Previous Results To delete all previous results and start with a clean slate, run: `npm run cleanRun.js`
 
 ## Contributing
 
