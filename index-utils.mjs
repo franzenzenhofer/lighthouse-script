@@ -22,7 +22,8 @@ function convertTimestamp(timestamp) {
   const timePart = timestamp.slice(11).replace(/-/g, ':');
   return `${datePart} ${timePart}`;
 }
-
+//this funtion is used to generate the index.html file
+//it works by taking the runs array and mapping over it
 export function generateIndexHTML(runs) {
   const listItems = runs
     .filter(run => run && run.timestamp) // Ensure run object has a timestamp property
@@ -52,7 +53,7 @@ export function generateIndexHTML(runs) {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Past Lighthouse Runs</title>
+        <title>Franz Enzenhofers Lighthouse Bulk Testing Tool</title>
         <style>
           body {
             font-family: Arial, sans-serif;
@@ -88,7 +89,8 @@ export function generateIndexHTML(runs) {
       </head>
       <body>
       <a href="/"><img src='/img/logo.png'></a>
-      <h1>Past Lighthouse Runs</h1>
+      <h1>Franz Enzenhofers Lighthouse Testing Tool</h1>
+      <h2>Past Test Runss</h1>
       <button id="edit-urls">Edit URLs</button> <!-- Add this button -->
       <button id="rerun-tests">Rerun Tests</button> <!-- Add this button -->
       <ul>${listItems}</ul>

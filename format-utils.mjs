@@ -21,6 +21,7 @@ const abbreviations = {
   LCP: 'Largest Contentful Paint',
   TBT: 'Total Blocking Time',
   CLS: 'Cumulative Layout Shift',
+  TTFB: 'Time to First Byte',
 };
 
 // Goal and max values for each metric
@@ -30,6 +31,7 @@ const goalValues = {
   LCP: { goal: 2520, max: 2950 },
   TBT: { goal: 200, max: 290 },
   CLS: { goal: 0.1, max: 0.14 },
+  TTFB: { goal: 200, max: 400 },
 };
 
 // Get color based on the value compared to goal and max values
@@ -128,7 +130,7 @@ function formatRow(result) {
       <td style="background-color: ${performanceScoreColor}; text-align: center;">
         <span style="display: inline-block; padding: 5px; border-radius: 50%;">${formatNumber(performanceScoreValue)}</span>
       </td>
-      <td>${formatNumber(serverResponseTime)}</td>
+      ${formatCell(serverResponseTime, goalValues.TTFB.goal, goalValues.TTFB.max)}
       ${formatCell(firstContentfulPaint, goalValues.FCP.goal, goalValues.FCP.max)}
       ${formatCell(speedIndex, goalValues.SI.goal, goalValues.SI.max)}
       ${formatCell(largestContentfulPaint, goalValues.LCP.goal, goalValues.LCP.max)}
