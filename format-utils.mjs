@@ -135,8 +135,14 @@ function formatRow(result) {
 
   const psiLink = `https://pagespeed.web.dev/analysis?url=${encodeURIComponent(url)}`;
 
-  const reportLink = `<a href="/${reportFilename.replace('results/', '')}" >HTML Report</a>`;
-  const jsonReportLink = `<a href="/${jsonReportFilename.replace('results/', '')}" >JSON Report</a>`;
+  const getLastPartOfPath = (path) => {
+    const parts = path.split('/');
+    return parts[parts.length - 1];
+  };
+  
+  const reportLink = `<a href="./${getLastPartOfPath(reportFilename)}">HTML Report</a>`;
+  const jsonReportLink = `<a href="./${getLastPartOfPath(jsonReportFilename)}">JSON Report</a>`;
+  
 
   // Calculate the performance score and assign a color
   const performanceScoreValue = performance * 100;
