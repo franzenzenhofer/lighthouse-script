@@ -23,6 +23,8 @@ const reportDirectory = './results';
 const app = express();
 app.use('/img', express.static(path.join(__dirname, 'static', 'img')));
 app.use(express.json());
+app.use('/static', express.static(path.join(__dirname, 'static')));
+
 
 
 // Serve the urls-editor.html file from the static folder
@@ -63,13 +65,14 @@ app.post('/file-operation', async (req, res) => {
   }
 });
 
+const { wss, setRunningTests, handleUpgrade, broadcast } = createWebSocketServer(wsPort);
 
 app.post('/rerun-tests', async (req, res) => {
   try {
     setRunningTests(true);
 
     console.log('Rerunning Lighthouse tests...');
-    const { results } = await runLighthouseForUrls();
+    const { results } = await runLighthouseForUrls(broadcast);
     console.log('Lighthouse run complete.');
 
     console.log('Updating past runs...');
@@ -173,15 +176,23 @@ async function startLocalServer(reportDirectory) {
   return server;
 }
 
+
+
 async function main() {
   try {
     // Create the results directory if it doesn't exist
     await fs.mkdir(reportDirectory, { recursive: true });
 
     // Check if index.html exists before generating an empty one
+    let pastRuns;
     try {
       await fs.access(indexFile, fs.constants.F_OK);
       console.log('index.html exists.');
+
+      // Read past runs from the pastRuns.json file
+      console.log('Reading past runs file...');
+      pastRuns = await readPastRunsFile(pastRunsFile);
+      console.log('Past runs file read successfully.');
     } catch (error) {
       console.log('index.html does not exist, running Lighthouse for the first time.');
 
@@ -194,17 +205,18 @@ async function main() {
       }
 
       console.log('Running Lighthouse for URLs...');
-      const { results } = await runLighthouseForUrls();
+      const { results } = await runLighthouseForUrls(broadcast);
       console.log('Lighthouse run complete.');
 
       console.log('Updating past runs...');
-      const pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
+      pastRuns = (await updatePastRuns(results)).filter(run => run !== null);
       console.log('Past runs updated.');
-
-      console.log('Writing index HTML...');
-      await writeIndexHTML(pastRuns);
-      console.log('Index HTML written.');
     }
+
+    // Write index.html based on pastRuns every time the application starts
+    console.log('Writing index HTML...');
+    await writeIndexHTML(pastRuns);
+    console.log('Index HTML written.');
 
     console.log('Starting local server...');
     const server = await startLocalServer(reportDirectory);
@@ -215,11 +227,5 @@ async function main() {
     console.error('Unexpected error:', error);
   }
 }
-
-
-
-
-
-const { wss, setRunningTests, handleUpgrade } = createWebSocketServer(wsPort);
 
 main();

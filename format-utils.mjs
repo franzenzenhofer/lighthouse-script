@@ -52,29 +52,49 @@ function formatCell(value, goal, max) {
   return `<td style="background-color: ${color}">${formatNumber(value)}</td>`;
 }
 
-function formatTopIssues(topIssues) {
-  console.log('Formatting top issues:', topIssues); // Add this line
-  if (!topIssues || topIssues.length === 0) return '';
+function encodeHtmlEntities(str) {
+  return str.replace(/[\u00A0-\u9999<>&](?!#)/g, function(i) {
+    return '&#' + i.charCodeAt(0) + ';';
+  });
+}
 
-  const rows = topIssues.map(({ key, count, severity }) => `
-    <tr>
-      <td>${key}</td>
-      <td>${count}</td>
-      <td>${severity.toFixed(2)}</td>
-    </tr>
-  `).join('');
+function formatTopOpportunities(topOpportunities) {
+  console.log('Formatting top opportunities:', topOpportunities);
+  if (!topOpportunities || topOpportunities.length === 0) return '';
+
+  const rows = topOpportunities.map(({ id, title, description, count }) => {
+    const encodedDescription = encodeHtmlEntities(description);
+
+    // Convert markdown links to HTML links
+    const formattedDescription = encodedDescription.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    // Error handling for corrupted data
+    const safeTitle = title || 'Unknown';
+    const safeDescription = formattedDescription || 'Unknown';
+    const safeCount = typeof count === 'number' ? count : 'Unknown';
+
+    return `
+      <tr>
+        <td>${safeTitle}</td>
+        <td>${safeDescription}</td>
+        <td>${safeCount}</td>
+      </tr>
+    `;
+  }).join('');
 
   return `
-    <h2>Top Issues</h2>
+    <h2>Top Opportunities</h2>
     <table>
       <tr>
-        <th>Issue</th>
+        <th>Title</th>
+        <th>Description</th>
         <th>Count</th>
-        <th>Average Severity</th>
       </tr>
       ${rows}
     </table>`;
 }
+
+
 
 
 // Format the legend table
@@ -220,11 +240,11 @@ function formatTable(results) {
 }
 
 
-export function formatAsHTML(results, topIssues) {
+export function formatAsHTML(results, topOpportunities) {
   try {
     const table = formatTable(results);
     const legend = formatLegend();
-    const topIssuesTable = formatTopIssues(topIssues);
+    const topOpportunitiesTable = formatTopOpportunities(topOpportunities);
 
     return `
     <!DOCTYPE html>
@@ -267,7 +287,7 @@ export function formatAsHTML(results, topIssues) {
       ${table}
       <h2>Legend</h2>
       ${legend}
-      ${topIssuesTable}
+      ${topOpportunitiesTable}
     </body>
     </html>`;
   } catch (error) {

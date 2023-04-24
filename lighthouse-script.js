@@ -5,6 +5,8 @@ import chromeLauncher from 'chrome-launcher';
 import { writeFile } from './file-utils.mjs';
 import { formatAsCSV, formatAsHTML } from './format-utils.mjs';
 import { readPastRunsFile, writePastRunsFile, generateIndexHTML } from './index-utils.mjs';
+//import { broadcast } from './websocket-utils.mjs';
+
 
 const inputFile = 'urls.txt';
 const logDir = 'logs';
@@ -19,61 +21,96 @@ getLighthouseVersion().then(version => {
   console.log(`Using Lighthouse version: ${version}`);
 });*/
 
-function extractIssues(results) {
-  const issues = {};
+function getTopOpportunities(results) {
+  const opportunities = [];
 
   results.forEach(result => {
-    if (!result.error) {
-      Object.entries(result.diagnostics).forEach(([key, value]) => {
-        if (!issues[key]) {
-          issues[key] = {
-            count: 1,
-            severity: value,
-          };
-        } else {
-          issues[key].count += 1;
-          issues[key].severity += value;
-        }
-      });
+    if (result.error) {
+      console.log(`Skipping result with error for URL ${result.url}`);
+      return;
+    }
+
+    if (!result.audits) {
+      console.log(`No audits found for URL ${result.url}. Result:`, result);
+      return;
+    }
+
+    Object.values(result.audits).forEach(audit => {
+      if (audit.details && audit.details.type === 'opportunity' && audit.score !== 1) {
+        console.log(`Found opportunity for URL ${result.url}: ${audit.description}`);
+        opportunities.push(audit);
+      }
+    });
+  });
+
+  const grouped = {};
+
+  opportunities.forEach(opportunity => {
+    const key = opportunity.description;
+    if (grouped[key]) {
+      grouped[key].count++;
+    } else {
+      grouped[key] = {
+        opportunity,
+        count: 1,
+      };
     }
   });
 
-  const sortedIssues = Object.entries(issues)
-    .map(([key, value]) => ({
-      key,
-      count: value.count,
-      severity: value.severity / value.count,
-    }))
-    .sort((a, b) => b.severity - a.severity);
+  const sortedOpportunities = Object.values(grouped).sort((a, b) => {
+    const scoreDiff = a.opportunity.score - b.opportunity.score;
+    if (scoreDiff !== 0) {
+      return scoreDiff;
+    }
 
-  console.log('Extracted issues:', sortedIssues); // Add this line
+    return b.count - a.count;
+  });
 
-  return sortedIssues.slice(0, 10);
+  const topOpportunities = sortedOpportunities.slice(0, 10).map(({ opportunity, count }) => {
+    return {
+      ...opportunity,
+      count,
+    };
+  });
+
+  console.log("Top 10 opportunities:");
+  console.log(topOpportunities);
+  return topOpportunities;
 }
 
 
 
-async function processURLs(urls, ts, resultsSubDir) {
+
+
+async function processURLs(urls, ts, resultsSubDir, broadcast) {
   const results = [];
 
-  for (const url of urls) {
+  function logAndBroadcast(type, message, data = {}) {
+    console.log(message);
+    broadcast({ type, message, ...data });
+  }
+
+  for (const [index, url] of urls.entries()) {
     const start = performance.now();
-    console.log(`Starting Lighthouse test for ${url}`);
+    logAndBroadcast('testStart', `Starting Lighthouse test for ${url}`, { url, index, total: urls.length });
+    
     try {
       const r = await runLighthouse(url, ts, resultsSubDir);
-      console.log(`Lighthouse test successful for ${url}`);
+      logAndBroadcast('testEnd', `Lighthouse test successful for ${url}`, { url, index, success: true });
       results.push(r);
     } catch (error) {
-      console.log(`Lighthouse test failed for ${url}: ${error.message}`);
+      logAndBroadcast('testError', `Lighthouse test failed for ${url}: ${error.message}`, { url, index, success: false, error: error.message });
       results.push({ error, url });
     } finally {
       const end = performance.now();
       const duration = (end - start) / 1000;
-      console.log(`Lighthouse test for ${url} took ${duration.toFixed(2)} seconds`);
+      logAndBroadcast('testDuration', `Lighthouse test for ${url} took ${duration.toFixed(2)} seconds`, { url, duration });
     }
   }
   return results;
 }
+
+
 
 
 async function createResultsSubDir(resultsSubDir) {
@@ -93,17 +130,17 @@ async function saveCSV(results, csvFilePath) {
   }
 }
 
-async function saveHTML(results, htmlFilePath, topIssues) {
+async function saveHTML(results, htmlFilePath, topOpportunities) {
   try {
-    const htmlContent = formatAsHTML(results, topIssues);
+    const htmlContent = formatAsHTML(results, topOpportunities);
     await writeFile(htmlFilePath, htmlContent);
   } catch (e) {
     console.error(`Error writing HTML results: ${e.message}`);
     console.error(`Error stack trace: ${e.stack}`);
-    console.log(`HTML content:\n${formatAsHTML(results,topIssues)}`);
+    console.log(`HTML content:\n${formatAsHTML(results,topOpportunities)}`);
     
     try {
-      await writeFile(`${htmlFilePath}_failed-run.html`, formatAsHTML(results,topIssues));
+      await writeFile(`${htmlFilePath}_failed-run.html`, formatAsHTML(results,topOpportunities));
     } catch (e) {
       console.error(`Error saving failed HTML results: ${e.message}`);
     }
@@ -111,7 +148,7 @@ async function saveHTML(results, htmlFilePath, topIssues) {
 }
 
 
-async function runLighthouseForUrls() {
+async function runLighthouseForUrls(broadcast) {
   
   const urls = (await fs.readFile(inputFile, 'utf-8')).split('\n').filter(Boolean);
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
@@ -128,21 +165,25 @@ async function runLighthouseForUrls() {
  
 
 
-  const results = await processURLs(urls, ts, runSubDir);
-  const topIssues = extractIssues(results);
-  
+  const results = await processURLs(urls, ts, runSubDir, broadcast);
+  const topOpportunities = getTopOpportunities(results);
+
   // Save results internally
   await createResultsSubDir(resultsSubDir);
   const csvFilePath = `${resultsSubDir}/${ts}/lighthouse-results-${ts}.csv`;
   const htmlFilePath = `${resultsSubDir}/${ts}/lighthouse-results-${ts}.html`;
   await saveCSV(results, csvFilePath);
-  console.log('Top issues:', topIssues); // Add this line
-  await saveHTML(results, htmlFilePath, topIssues);
+  console.log('Top issues:', topOpportunities); // Add this line
+  await saveHTML(results, htmlFilePath, topOpportunities);
 
   // Update index.html with the new results
   //await generateIndexHTML(results);
 
+  broadcast({ type: 'testsFinished' });
+
   await generateIndexHTML(results);
+
+  
 
   return {
     results,
@@ -214,7 +255,8 @@ async function runLighthouse(url, ts, runSubDir) {
       totalByteWeight,
       mainThreadTime,
       timeToInteractive,
-      serverResponseTime
+      serverResponseTime,
+      audits
     };
   } catch (error) {
     return { error, url };

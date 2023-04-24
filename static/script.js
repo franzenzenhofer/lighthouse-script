@@ -1,56 +1,81 @@
-  // Add this script to handle button clicks
-  document.getElementById('edit-urls').addEventListener('click', () => {
-    location.href = '/urls-editor';
-  });
+const socket = new WebSocket('ws://localhost:3000');
 
-  document.getElementById('rerun-tests').addEventListener('click', async () => {
-    const response = await fetch('/rerun-tests', { method: 'POST' });
-    if (response.ok) {
-      location.reload();
+socket.onopen = (event) => {
+  console.log('A WebSocket connection was opened');
+  console.log('WebSocket readyState:', socket.readyState);
+  socket.send('getStatus');
+};
+
+console.log("Attempting to open WebSocket connection");
+console.log(socket);
+
+function updateConsole(message, isBold = false) {
+  console.log('A message was received from the server:', message);
+  if (message) {
+    const consoleElem = document.getElementById('console');
+    if (isBold) {
+      consoleElem.innerHTML += '<b>' + message + '</b>\n';
     } else {
-      alert('Error rerunning tests');
+      consoleElem.textContent += message + '\n';
     }
-  });
+    consoleElem.scrollTop = consoleElem.scrollHeight;
+  }
+}
 
+socket.onmessage = (event) => {
+  console.log('A message was received from the server');
+  const data = JSON.parse(event.data);
+  const { type, message } = data;
 
-  // Remove the setInterval and checkForUpdates function
+  updateConsole(message);
 
-  const socket = new WebSocket('ws://localhost:3000');
-
-  socket.onopen = (event) => {
-    console.log('WebSocket connection established:', event);
-    console.log('WebSocket readyState:', socket.readyState);
-    socket.send('getStatus');
-  };
-
-  console.log("Attempting to open WebSocket connection");
-  console.log(socket);
-
-  let wasRunningTests = false;
-
-  socket.onmessage = (event) => {
-    console.log('WebSocket message received:', event.data);
-    const { runningTests } = JSON.parse(event.data);
-    const rerunTestsButton = document.getElementById('rerun-tests');
-    rerunTestsButton.disabled = runningTests;
-
-    if (runningTests) {
+  const rerunTestsButton = document.getElementById('rerun-tests');
+  const reloadButton = document.getElementById('reload-page');
+  
+  switch (type) {
+    case 'testStart':
+      rerunTestsButton.disabled = true;
       rerunTestsButton.textContent = 'Running tests...';
-    } else {
+      break;
+    case 'testEnd':
+      // Handle individual test completion (if needed)
+      break;
+    case 'testsFinished':
+      console.log('The tests have finished');
+      rerunTestsButton.disabled = false;
       rerunTestsButton.textContent = 'Rerun Tests';
-    }
+      reloadButton.style.display = 'inline-block';
+      updateConsole('Tests are finished.', true);
+      break;
+  }
+};
 
-    if (wasRunningTests && !runningTests) {
-      location.reload();
-    }
+socket.onclose = (event) => {
+  console.log('A WebSocket connection was closed');
+};
 
-    wasRunningTests = runningTests;
-  };
+socket.onerror = (error) => {
+  console.error('A WebSocket error occurred:', error);
+};
 
-  socket.onclose = (event) => {
-    console.log('WebSocket connection closed:', event);
-  };
+document.getElementById('edit-urls').addEventListener('click', () => {
+  console.log('The edit-urls button was clicked');
+  location.href = '/urls-editor';
+});
 
-  socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
+document.getElementById('rerun-tests').addEventListener('click', async () => {
+  console.log('The rerun-tests button was clicked');
+  const response = await fetch('/rerun-tests', { method: 'POST' });
+  if (response.ok) {
+    console.log('The request to rerun the tests was successful');
+    document.getElementById('rerun-tests').disabled = true;
+    socket.send('startTests');
+  } else {
+    console.log('The request to rerun the tests failed');
+    alert('Error rerunning tests');
+  }
+});
+
+document.getElementById('reload-page').addEventListener('click', () => {
+  location.reload();
+});

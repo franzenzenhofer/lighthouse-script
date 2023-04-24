@@ -30,12 +30,18 @@ export function createWebSocketServer() {
   }
 
   function broadcast(message) {
+    // Check if the message is an object and stringify it if necessary
+    if (typeof message === 'object') {
+      message = JSON.stringify(message);
+    }
+  
     wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message);
       }
     });
   }
+  
 
   function setRunningTests(status) {
     runningTests = status;
@@ -45,9 +51,31 @@ export function createWebSocketServer() {
     broadcast(message);
   }
 
+  function sendTestStart(url) {
+    const message = JSON.stringify({ event: 'testStart', url });
+    console.log('Broadcasting test start to all clients:', message);
+    broadcast(message);
+  }
+  
+  function sendTestEnd(url, duration) {
+    const message = JSON.stringify({ event: 'testEnd', url, duration });
+    console.log('Broadcasting test end to all clients:', message);
+    broadcast(message);
+  }
+  
+  function sendTestError(url, error) {
+    const message = JSON.stringify({ event: 'testError', url, error });
+    console.log('Broadcasting test error to all clients:', message);
+    broadcast(message);
+  }
+  
   return {
     wss,
     setRunningTests,
-    handleUpgrade
+    handleUpgrade,
+    sendTestStart,
+    sendTestEnd,
+    sendTestError,
+    broadcast, // Add this line to export the broadcast function
   };
 }

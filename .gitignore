@@ -20,3 +20,4 @@ urls.txt.bak
 urls.txt
 urls.txt.bak
 *.txt
+.DS_Store
