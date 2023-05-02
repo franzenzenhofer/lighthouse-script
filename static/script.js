@@ -58,6 +58,21 @@ socket.onerror = (error) => {
   console.error('A WebSocket error occurred:', error);
 };
 
+document.addEventListener('DOMContentLoaded', () => {
+  const downloadZipButtons = document.querySelectorAll('.download-zip');
+
+  downloadZipButtons.forEach((button) => {
+    button.addEventListener('click', (event) => {
+      const date = event.target.getAttribute('data-date');
+      const timestamp = event.target.getAttribute('data-timestamp');
+      const downloadUrl = `/download-zip/${date}/${timestamp}`;
+      console.log(downloadUrl);
+
+      window.location.href = downloadUrl;
+    });
+  });
+});
+
 document.getElementById('edit-urls').addEventListener('click', () => {
   console.log('The edit-urls button was clicked');
   location.href = '/urls-editor';

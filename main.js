@@ -7,6 +7,7 @@ import path, { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import open from 'open';
 import url from 'url';
+import archiver from 'archiver';
 
 import crawl from './crawler.js';
 
@@ -30,6 +31,23 @@ app.use('/static', express.static(path.join(__dirname, 'static')));
 // Serve the urls-editor.html file from the static folder
 app.get('/urls-editor', (req, res) => {
   res.sendFile(resolve(__dirname, 'static', 'urls-editor.html'));
+});
+
+app.get('/download-zip/:date/:timestamp', (req, res) => {
+  const { date, timestamp } = req.params;
+  const folderPath = path.join(__dirname, `./results/${date}/${timestamp}`);
+  const archive = archiver('zip');
+
+  res.attachment(`lighthouse-results-${timestamp}.zip`);
+
+  archive.on('error', (err) => {
+    res.status(500).send({ error: err.message });
+  });
+
+  archive.pipe(res);
+
+  archive.directory(folderPath, false);
+  archive.finalize();
 });
 
 app.post('/crawl', async (req, res) => {

@@ -84,6 +84,8 @@ export function generateIndexHTML(runs) {
           ${testsCount}
           <br>
           ${uniqueDomains}
+          <br>
+          <button class="download-zip" data-date="${date}" data-timestamp="${timestamp}">Download Zip</button>
         </li>
       `;
     })
