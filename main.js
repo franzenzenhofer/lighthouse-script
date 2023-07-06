@@ -150,11 +150,19 @@ async function updatePastRuns(results) {
 
     const errorCount = results.filter(result => result.error).length;
 
-    pastRuns.unshift({ timestamp, reportDir, testsCount, uniqueDomains, errorCount });
+    if (errorCount === 0) {
+      pastRuns.unshift({ timestamp, reportDir, testsCount, uniqueDomains, errorCount });
 
-    console.log('Writing updated past runs to file...');
-    await writePastRunsFile(pastRunsFile, pastRuns);
-    console.log('Updated past runs written to file successfully.');
+      console.log('Writing updated past runs to file...');
+      await writePastRunsFile(pastRunsFile, pastRuns);
+      console.log('Updated past runs written to file successfully.');
+    } else {
+      console.warn('Lighthouse run failed. Skipping past runs update.');
+    }
+
+    console.log('Writing index HTML...');
+    await writeIndexHTML(pastRuns);
+    console.log('Index HTML written.');
 
     console.log('Past runs updated successfully.');
     return pastRuns;
