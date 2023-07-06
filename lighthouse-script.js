@@ -82,7 +82,7 @@ function getTopOpportunities(results) {
 
 
 
-async function processURLs(urls, ts, resultsSubDir, broadcast) {
+async function processURLs(urls, ts, resultsSubDir, broadcast, chromeProfileDir) {
   const results = [];
 
   function logAndBroadcast(type, message, data = {}) {
@@ -95,7 +95,7 @@ async function processURLs(urls, ts, resultsSubDir, broadcast) {
     logAndBroadcast('testStart', `Starting Lighthouse test for ${url}`, { url, index, total: urls.length });
     
     try {
-      const r = await runLighthouse(url, ts, resultsSubDir);
+      const r = await runLighthouse(url, ts, resultsSubDir, chromeProfileDir);
       logAndBroadcast('testEnd', `Lighthouse test successful for ${url}`, { url, index, success: true });
       results.push(r);
     } catch (error) {
@@ -148,7 +148,9 @@ async function saveHTML(results, htmlFilePath, topOpportunities) {
 }
 
 
-async function runLighthouseForUrls(broadcast) {
+async function runLighthouseForUrls(broadcast, chromeProfileDir = null) {
+  //debug chreomeProfileDir
+  console.log(`chromeProfileDir: ${chromeProfileDir}`);
   
   const urls = (await fs.readFile(inputFile, 'utf-8')).split('\n').filter(Boolean);
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
@@ -165,7 +167,7 @@ async function runLighthouseForUrls(broadcast) {
  
 
 
-  const results = await processURLs(urls, ts, runSubDir, broadcast);
+  const results = await processURLs(urls, ts, runSubDir, broadcast, chromeProfileDir);
   const topOpportunities = getTopOpportunities(results);
 
   // Save results internally
@@ -204,9 +206,24 @@ function removeBase64Images(obj) {
   }
 }
 
-async function runLighthouse(url, ts, runSubDir) {
+async function runLighthouse(url, ts, runSubDir, chromeProfileDir = null) {
+
   try {
-    const chrome = await chromeLauncher.launch({ chromeFlags: ['--headless'] });
+const chromeFlags = []; //['--headless'];
+if (chromeProfileDir) {
+  chromeFlags.push(`--user-data-dir=${chromeProfileDir}`);
+  //profileId is the last part of chromeProfileDir 
+  let profileId = chromeProfileDir.split("/").pop();
+  chromeFlags.push(`--profile-directory=${profileId}`);
+  
+  console.log(`Chrome flags set to: ${chromeFlags.join(' ')}`);
+} else {
+  console.warn('Chrome profile directory not set. Running headless.');
+  chromeFlags.push(`'--headless`);
+
+}
+
+const chrome = await chromeLauncher.launch({ chromeFlags });
     const opts = { output: ['json', 'html'], onlyCategories: ['performance'], port: chrome.port };
     const results = await lighthouse(url, opts);
     await chrome.kill();

@@ -90,7 +90,7 @@ app.post('/rerun-tests', async (req, res) => {
     setRunningTests(true);
 
     console.log('Rerunning Lighthouse tests...');
-    const { results } = await runLighthouseForUrls(broadcast);
+    const { results } = await runLighthouseForUrls(broadcast, chromeProfileDir);
     console.log('Lighthouse run complete.');
 
     console.log('Updating past runs...');
@@ -202,9 +202,37 @@ async function startLocalServer(reportDirectory) {
   return server;
 }
 
-
+var chromeProfileDir = null;
 
 async function main() {
+  let args = process.argv.slice(2);
+  // Find the index of '--user-data-dir' argument
+  let userDataDirArgIndex = args.findIndex(arg => arg === '--user-data-dir');
+
+  
+
+  if (userDataDirArgIndex > -1) {
+    // Check if next argument exists (should be the path)
+    if (args[userDataDirArgIndex + 1]) {
+      let userDataDir = args[userDataDirArgIndex + 1];
+      console.log(`User data directory: ${userDataDir}`);
+
+      if (userDataDir && userDataDir.trim().length > 0) {
+        chromeProfileDir = userDataDir;
+        console.log(`Chrome profile directory set to: ${chromeProfileDir}`);
+      } else {
+        console.error('Invalid --user-data-dir argument');
+      }
+    } else {
+      console.error('No path provided for --user-data-dir argument');
+    }
+  } else {
+    console.warn('No --user-data-dir argument provided');
+  }
+
+  console.log(`Chrome profile directory: ${chromeProfileDir}`);
+
+
   try {
     // Create the results directory if it doesn't exist
     await fs.mkdir(reportDirectory, { recursive: true });
@@ -231,7 +259,8 @@ async function main() {
       }
 
       console.log('Running Lighthouse for URLs...');
-      const { results } = await runLighthouseForUrls(broadcast);
+      console.log(chromeProfileDir);
+      const { results } = await runLighthouseForUrls(broadcast, chromeProfileDir);
       console.log('Lighthouse run complete.');
 
       console.log('Updating past runs...');
