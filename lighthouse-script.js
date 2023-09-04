@@ -219,7 +219,7 @@ if (chromeProfileDir) {
   console.log(`Chrome flags set to: ${chromeFlags.join(' ')}`);
 } else {
   console.warn('Chrome profile directory not set. Running headless.');
-  chromeFlags.push(`'--headless`);
+  chromeFlags.push(`--headless`);
 
 }
 
