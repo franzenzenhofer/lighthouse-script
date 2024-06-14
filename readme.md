@@ -22,7 +22,7 @@ This is a Lighthouse script that automates performance tests for multiple webpag
 
 `cd lighthouse-script`
 
-3. Install the required dependencies:
+3. Install the required dependencies
 
 `npm install`
 
