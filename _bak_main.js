@@ -199,12 +199,8 @@ async function startLocalServer(reportDirectory) {
   return server;
 }
 
-var chromeProfileDir = null;
-
 async function startServer() {
-  // Setup for serving static files from reportDirectory
-  app.use(express.static(reportDirectory));
-
+  // Function to start the server
   const server = app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
   });
@@ -214,6 +210,16 @@ async function startServer() {
   return server;
 }
 
+// Export the app and startServer function
+export { app, startServer };
+
+// Conditionally start the server only if the script is not required by another module (like Electron)
+if (require.main === module) {
+  startServer();
+}
+
+
+var chromeProfileDir = null;
 
 async function main() {
   let args = process.argv.slice(2);
@@ -285,11 +291,13 @@ async function main() {
     console.log('Index HTML written.');
 
     console.log('Starting local server...');
-    const server = await startServer();
+    const server = await startLocalServer(reportDirectory);
+
+    // Attach the handleUpgrade listener to the HTTP server instance
+    server.on('upgrade', handleUpgrade);
   } catch (error) {
     console.error('Unexpected error:', error);
   }
 }
 
-// Export the app, startServer, and main function
-export { app, startServer, main };
+main();
