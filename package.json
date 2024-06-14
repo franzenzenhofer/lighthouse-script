@@ -5,7 +5,11 @@
   "main": "lighthouse-script.js",
   "type": "module",
   "scripts": {
+<<<<<<< HEAD
     "test": "echo \"Error: no test specified\" && exit 1"
+=======
+    "start": "electron electron.js"
+>>>>>>> parent of 0a8438d (Update package.json)
   },
   "keywords": [],
   "author": "",
