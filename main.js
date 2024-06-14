@@ -10,6 +10,7 @@ import url from 'url';
 import archiver from 'archiver';
 
 import crawl from './crawler.js';
+
 import { createWebSocketServer } from './websocket-utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -24,6 +25,8 @@ const app = express();
 app.use('/img', express.static(path.join(__dirname, 'static', 'img')));
 app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'static')));
+
+
 
 // Serve the urls-editor.html file from the static folder
 app.get('/urls-editor', (req, res) => {
@@ -201,20 +204,6 @@ async function startLocalServer(reportDirectory) {
 
 var chromeProfileDir = null;
 
-async function startServer() {
-  // Setup for serving static files from reportDirectory
-  app.use(express.static(reportDirectory));
-
-  const server = app.listen(port, () => {
-      console.log(`Server running at http://localhost:${port}`);
-  });
-
-  server.on('upgrade', handleUpgrade);
-
-  return server;
-}
-
-
 async function main() {
   let args = process.argv.slice(2);
   // Find the index of '--user-data-dir' argument
@@ -285,11 +274,13 @@ async function main() {
     console.log('Index HTML written.');
 
     console.log('Starting local server...');
-    const server = await startServer();
+    const server = await startLocalServer(reportDirectory);
+
+    // Attach the handleUpgrade listener to the HTTP server instance
+    server.on('upgrade', handleUpgrade);
   } catch (error) {
     console.error('Unexpected error:', error);
   }
 }
 
-// Export the app, startServer, and main function
-export { app, startServer, main };
+main();
