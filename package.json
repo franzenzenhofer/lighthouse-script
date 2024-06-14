@@ -5,7 +5,8 @@
   "main": "lighthouse-script.js",
   "type": "module",
   "scripts": {
-    "start": "electron electron.js"
+    "start": "electron electron.js",
+    "package-mac": "electron-packager . --overwrite --platform=darwin --arch=x64 --prune=true --out=release-builds"
   },
   "keywords": [],
   "author": "",
